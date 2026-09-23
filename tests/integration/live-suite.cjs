@@ -10,6 +10,7 @@ exports.run = async function () {
     await config.update('model', process.env.CALED_LIVE_MODEL, vscode.ConfigurationTarget.Global);
     await config.update('inline.enabled', false, vscode.ConfigurationTarget.Global);
     const api = await vscode.extensions.getExtension('caled.caled').activate();
+    await api.testing.homeMessage({ action: 'saveBrief', brief: { goal: 'Entender y corregir la función sum', audience: 'Una persona que aprende TypeScript', criteria: ['sum(2, 3) devuelve 5'], kind: 'learn' } });
     const document = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'sum.ts')));
     await vscode.window.showTextDocument(document);
     await vscode.commands.executeCommand('caled.open');

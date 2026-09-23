@@ -9,6 +9,10 @@ const fixture = path.join(directory, 'workspace');
 await mkdir(fixture, { recursive: true });
 await writeFile(path.join(fixture, 'sum.ts'), 'export function sum(a: number, b: number) {\n  return a - b;\n}\n');
 await writeFile(path.join(fixture, '.env'), 'TOKEN=CALED_SECRET_DO_NOT_SEND');
+// A saved workspace lets the suite add/remove a secondary folder without
+// replacing its extension host or triggering the save-workspace dialog.
+const workspaceFile = path.join(directory, 'Caled studio.code-workspace');
+await writeFile(workspaceFile, JSON.stringify({ folders: [{ path: 'workspace' }] }));
 const resultFile = path.join(directory, 'result.json');
 const env = { ...process.env, CALED_TEST_RESULT: resultFile };
 if (process.argv.includes('--capture')) env.CALED_TEST_CAPTURE = '1';
@@ -21,7 +25,7 @@ delete env.ELECTRON_RUN_AS_NODE; delete env.VSCODE_PORTABLE; delete env.VSCODE_D
 env.VSCODE_PORTABLE = path.join(directory, 'portable');
 await mkdir(path.join(env.VSCODE_PORTABLE, 'user-data', 'User'), { recursive: true });
 await writeFile(path.join(env.VSCODE_PORTABLE, 'user-data', 'User', 'settings.json'), await readFile(path.join(root, 'product/settings.defaults.json')));
-const child = spawn(path.join(runtime, lock.executable), [fixture, '--user-data-dir', path.join(directory, 'profile'), '--extensions-dir', path.join(directory, 'extensions'), '--extensionDevelopmentPath', root, '--extensionTestsPath', path.join(root, live ? 'tests/integration/live-suite.cjs' : 'tests/integration/suite.cjs'), '--disable-workspace-trust', '--skip-welcome', '--skip-release-notes', '--disable-updates', '--disable-gpu', ...(env.CALED_TEST_CAPTURE ? ['--remote-debugging-port=9237'] : []), '--new-window'], { cwd: root, env, windowsHide: true, stdio: 'pipe' });
+const child = spawn(path.join(runtime, lock.executable), [workspaceFile, '--user-data-dir', path.join(directory, 'profile'), '--extensions-dir', path.join(directory, 'extensions'), '--extensionDevelopmentPath', root, '--extensionTestsPath', path.join(root, live ? 'tests/integration/live-suite.cjs' : 'tests/integration/suite.cjs'), '--disable-workspace-trust', '--skip-welcome', '--skip-release-notes', '--disable-updates', '--disable-gpu', ...(env.CALED_TEST_CAPTURE ? ['--remote-debugging-port=9237'] : []), '--new-window'], { cwd: root, env, windowsHide: true, stdio: 'pipe' });
 let logs = '';
 for (const stream of [child.stdout, child.stderr]) stream.on('data', data => { logs += data.toString(); });
 const timer = setTimeout(() => {

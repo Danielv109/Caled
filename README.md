@@ -2,7 +2,7 @@
 
 Editor de escritorio basado en Code OSS/VSCodium, con IA local por defecto y proveedores externos opcionales. Proyecto MIT, sin suscripción de Caled.
 
-**Estado: versión 0.3 funcional, sin paridad completa con Cursor.** Incluye una distribución Windows x64 preparada, inicio propio, temas claro/oscuro/sistema, español e inglés, cinco perfiles de agente y recuperación de cambios. La integración de cuentas está preparada, pendiente de conectar un servicio. No se ha compilado un ejecutable propio desde el núcleo ni demostrado menor consumo que Cursor. El detalle de avances y pendientes está en [ROADMAP](docs/ROADMAP.md).
+**Estado: versión 0.4 funcional, sin paridad completa con Cursor.** Incluye una distribución Windows x64 preparada, estudio personal, cuaderno de proyecto, temas claro/oscuro/sistema, español e inglés, cinco perfiles de agente y recuperación de cambios. La integración de cuentas está preparada, pendiente de conectar un servicio. No se ha compilado un ejecutable propio desde el núcleo ni demostrado menor consumo que Cursor. El detalle de avances y pendientes está en [ROADMAP](docs/ROADMAP.md).
 
 ## Abrir la aplicación
 
@@ -15,11 +15,19 @@ npm run desktop
 
 El icono de Caled en la barra lateral abre el asistente. Atajos: **Ctrl+Alt+L** para chat, **Ctrl+Alt+K** para proponer una edición, **Tab** para aceptar autocompletado y **Escape** para descartarlo. El selector del panel cambia entre Chat, Editar y Agente.
 
-**Caled: Inicio** abre la pantalla para crear una carpeta de proyecto, abrir una existente y elegir la ayuda adecuada. **Caled: Apariencia e idioma** cambia el tema y el idioma del panel inmediatamente. Cierra las ventanas de Caled y vuelve a abrirlo para cambiar también los menús nativos. El paquete de español se instala durante `desktop:prepare`, con versión y checksum fijados. Algunos textos nuevos del núcleo pueden recurrir al inglés.
+**Caled: Mi estudio** abre tu espacio de trabajo personal. También puedes pulsar la marca **caled** en la cabecera del asistente. **Caled: Apariencia e idioma** cambia el tema y el idioma del panel inmediatamente. Cierra las ventanas de Caled y vuelve a abrirlo para cambiar también los menús nativos. El paquete de español se instala durante `desktop:prepare`, con versión y checksum fijados. Algunos textos nuevos del núcleo pueden recurrir al inglés.
 
 Los accesos directos usan el runtime incluido; no necesitan Node global para iniciar. `npm run desktop:shortcuts` los vuelve a crear sin reemplazar accesos ajenos. Los errores de arranque quedan en `.runtime/logs/` y se muestran en un diálogo.
 
 La distribución se encuentra en `.runtime/Caled`. Conserva el ejecutable original `VSCodium.exe`; la interfaz y el perfil portable pertenecen a Caled. No reemplaza tu instalación de VS Code.
+
+## Un estudio que se adapta a ti
+
+En **Mi espacio** puedes elegir un nombre de saludo, la cantidad de explicación (**Guiado**, **Equilibrado**, **Directo**) y un acento (**Salvia**, **Océano**, **Arcilla**). Los acentos funcionan sobre claro/oscuro y sólo personalizan los temas de Caled. Las preferencias ajenas a esos acentos se conservan. El nivel de explicación cambia los prompts de chat, edición y agentes; el nombre no se envía al modelo.
+
+En **Proyecto**, el cuaderno recoge qué quieres crear, para quién y hasta ocho criterios para comprobarlo. Se guarda localmente por carpeta, fuera de los archivos de código. **Planificar**, **Construir** y **Comprobar** preparan una instrucción y el perfil adecuado en el asistente. Revísala y pulsa Enviar: preparar el borrador no llama al modelo ni ejecuta herramientas. Si ya estabas escribiendo, tu texto se conserva y puedes elegir la nueva instrucción.
+
+El cuaderno guardado se incluye como contexto al usar la IA. Si eliges una API externa, también recibirá ese contenido; no escribas claves ni contraseñas allí. Los permisos del agente permanecen activos independientemente del texto del cuaderno. Borrar sus campos y guardar permite vaciarlo. Los borradores del panel se conservan al recargar su vista; no se añade sincronización entre dispositivos.
 
 ## IA local gratis, ya preparada en este equipo
 

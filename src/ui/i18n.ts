@@ -1,5 +1,9 @@
 /** Only authored interface copy belongs here; model output is always preserved. */
 export const english = {
+  'Mi estudio': 'My studio',
+  'Instrucción preparada. Revísala antes de enviarla.': 'Instruction ready. Review it before sending.',
+  'Tu borrador se conserva. Hay una nueva instrucción del cuaderno lista para revisar.': 'Your draft is unchanged. A new notebook instruction is ready to review.',
+  'Usar esta instrucción': 'Use this instruction',
   'Tu espacio para crear': 'Your space to build',
   'Asistente de programación Caled': 'Caled coding assistant',
   'Historial de cambios': 'Change history',

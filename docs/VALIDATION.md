@@ -1,21 +1,24 @@
-# Validación de la entrega 0.3
+# Validación de la entrega 0.4
 
-Fecha: 22 de septiembre de 2026. Windows x64, Node 22.14.0, 15,5 GiB de RAM física. Editor base VSCodium 1.135.06055 / Code OSS 1.135.0.
+Fecha: 23 de septiembre de 2026. Windows x64, Node 22.14.0, 15,5 GiB de RAM física. Editor base VSCodium 1.135.06055 / Code OSS 1.135.0.
 
 | Comprobación | Resultado |
 | --- | --- |
 | TypeScript estricto | Aprobado |
-| Pruebas unitarias | 203 aprobadas en 12 archivos |
+| Pruebas unitarias | 271 aprobadas en 14 archivos |
 | Compilación de extensión y worker | Aprobada |
 | Distribución portable e integridad del ZIP upstream | Aprobadas |
 | Paquete VSIX | Instalación aprobada en un perfil aislado de VS Code |
 | Checkout Code OSS y overlay repetible | Preparado; núcleo no compilado |
-| Integración en desktop con proveedor simulado | 15 comprobaciones aprobadas |
+| Integración en desktop con proveedor simulado | 19 comprobaciones aprobadas |
 | Ciclo de agente | Lectura, aprobación de edición, guardado, aprobación de comando y resultado observados |
 | Recuperación | Checkpoint restaurado dentro del desktop real |
 | Índice sintético | 1.000 archivos; reinicio desde SQLite sin releer fuentes |
 | Revisión visual del desktop | Realizada mediante captura de la instancia de pruebas |
 | Apariencia e idiomas | Claro/oscuro/sistema en el editor; panel español/inglés |
+| Estudio personal | Tres pestañas, borradores, confirmación de guardado y aislamiento por carpeta |
+| Acentos | Seis variantes con contraste probado; ajustes ajenos conservados |
+| Cuaderno y modelo | Contexto y estilo verificados en desktop; nombre de saludo excluido de peticiones |
 | Accesos directos | Escritorio, Inicio y carpeta del proyecto; inicio real y ventana visible comprobados con Windows |
 | Perfiles del agente | Cinco; bloqueo de herramientas no permitidas comprobado también en desktop |
 | Autenticación opcional | PKCE, sesión y verificación probados localmente; servicio real pendiente |
@@ -27,7 +30,9 @@ Las pruebas de escritorio verifican carga de extensión, comandos, índice en wo
 
 En 0.3 se comprueban también los temas nativos, el perfil Revisor sin permisos de escritura/terminal, el idioma inglés y el rechazo de autorizaciones invisibles al recargar el panel. Las pruebas de cuentas usan respuestas simuladas y un callback HTTP real en loopback: no se han utilizado credenciales de Google/Apple ni enviado correos o SMS reales. Las pruebas de marca verifican siete tamaños del icono, contraste de textos principales y accesos directos Windows con rutas Unicode sin sobrescribir accesos ajenos.
 
-Capturas de esta entrega: `artifacts/caled-dark-es.png` y `artifacts/caled-light-en.png`. Muestran el panel y el inicio propios en una instancia de pruebas con menús nativos en inglés. La comprobación `artifacts/desktop-window-check.json` confirma una ventana visible de la aplicación normal después de abrir el acceso directo. El VSIX 0.3 se instaló además en un perfil aislado de VS Code y su CLI confirmó `caled.caled@0.3.0`.
+La entrega 0.4 añade pruebas del cuaderno, preparación de instrucciones sin llamar al proveedor, preferencia de explicación y exclusión del nombre personal de las peticiones. El cambio de carpetas dentro de un workspace comprueba que el worker del índice vuelve a crearse: antes quedaba cerrado. Las pruebas de UI cubren formularios, navegación por teclado, confirmaciones correlacionadas, fallos, sustitución explícita de borradores y recarga sin perder ediciones posteriores a un envío.
+
+Capturas del estudio: `artifacts/studio-dark-home.png`, `artifacts/studio-dark-project.png`, `artifacts/studio-dark-space.png` y sus variantes `studio-light-*.png`. Se obtienen con `test-desktop.mjs --capture` y `capture-studio.mjs`, sólo desde el puerto de la instancia aislada. Muestran datos de ejemplo y proveedor simulado. Las mediciones de índice siguientes pertenecen a la entrega anterior y no son una comparación de rendimiento de la interfaz nueva.
 
 El benchmark sintético de `artifacts/index-benchmark.json` midió 1.000 archivos (~4,2 MB): carga fría 1,88 s, reinicio desde SQLite 0,48 s con 0 fuentes releídas, actualización sin cambios 0,30 s y actualización de 10 archivos 0,34 s. La búsqueda tuvo p95 entre 2,4 y 6,3 ms y el RSS máximo del proceso aislado fue ~101 MB. Excluye Electron, el modelo y cualquier comparación con Cursor.
 

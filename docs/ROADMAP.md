@@ -64,7 +64,18 @@ El agente no es un sandbox: un comando autorizado usa los permisos normales del 
 
 La integración de cuentas está preparada; no hay autenticación pública activa ni cuenta obligatoria. Los iconos nativos del ejecutable y parte de la estructura siguen siendo de VSCodium/Code OSS.
 
-## 6. Rendimiento y publicación — pendiente
+## 6. Estudio personal y cuaderno — entrega 0.4
+
+- [x] Estudio con Inicio, Proyecto y Mi espacio; identidad coherente y navegación propia.
+- [x] Cuaderno local por carpeta: objetivo, público y criterios de éxito, sin modificar el repositorio.
+- [x] Instrucciones revisables para planificar, construir y comprobar; preparar no llama a la IA.
+- [x] Tres niveles de explicación conectados con los prompts de chat, edición y agentes.
+- [x] Tres acentos compatibles con claro/oscuro; preservar ajustes de color ajenos a Caled.
+- [x] Nombre de saludo local, excluido de los prompts y de la sincronización de ajustes.
+- [x] Conservar borradores existentes y distinguir guardado confirmado de envío pendiente.
+- [ ] Evaluar la experiencia con personas que están aprendiendo a programar.
+
+## 7. Rendimiento y publicación — pendiente
 
 - [ ] Comparar Caled, VSCodium base y Cursor usando el mismo proyecto, equipo y extensiones.
 - [ ] Medir arranque frío/caliente, RAM total, CPU en reposo, latencia p50/p95 y fluidez al escribir.

@@ -1,12 +1,22 @@
-# Identidad de Caled 0.3
+# Identidad de Caled 0.4
 
 Caled es un espacio para entender y construir software. La interfaz usa instrucciones cortas y ejemplos concretos: describe tu idea, revisa los cambios y comprueba el resultado. Las aprobaciones explican el efecto de cada acción. El modelo y el perfil del agente siempre se pueden elegir.
+
+## El estudio y el cuaderno
+
+El estudio tiene tres espacios: Inicio para orientarse, Proyecto para dar forma a una idea y Mi espacio para personalizar la experiencia. La composición se apoya en márgenes, tipografía, líneas y controles explícitos. No añade estadísticas de actividad ni progreso inventado. Funciona sin cuenta y sin cargar recursos remotos.
+
+El cuaderno organiza objetivo, público y criterios de éxito. Sus acciones preparan instrucciones revisables en el asistente: Planificar usa Guía, Construir usa Constructor y Comprobar usa Verificador. La preparación no inicia un modelo. Guardar usa el almacenamiento local del editor, separado por carpeta, con límites de longitud y sin crear archivos en el repositorio. Al enviar a la IA, el cuaderno se incorpora como contexto no confiable: no puede conceder permisos.
+
+Guiado explica términos y pasos; Equilibrado resume el resultado y su comprobación; Directo reduce el detalle manteniendo evidencia y límites. Esta preferencia cambia las instrucciones del modelo. El nombre de saludo se utiliza únicamente en la interfaz. El campo completo de personalización está excluido de Settings Sync.
 
 ## Marca y tipografía
 
 El símbolo es una C abierta con un trazo que continúa hacia fuera: una forma vectorial simple, legible en la barra lateral y en el escritorio. `media/caled.svg` es el icono monocromo; `media/caled-brand.svg` conserva los colores de marca; `media/caled.ico` contiene siete tamaños entre 16 y 256 px. Se regenera con `scripts/create-icon.ps1`.
 
 La interfaz utiliza Segoe UI Variable, Segoe UI o la fuente del sistema. El código usa Cascadia Code o Consolas. No se descarga una fuente ni se redistribuyen archivos tipográficos propietarios. Los temas se llaman **Caled Light** y **Caled Dark**: papel cálido, grafito y acentos verdes. La opción Sistema sigue la preferencia de color de Windows y conserva el alto contraste del editor.
+
+Sobre estos temas se pueden elegir acentos Salvia, Océano y Arcilla. Cada uno tiene variantes específicas para claro y oscuro: se prueban contraste de texto, botones, enlaces, selección e insignias. Se aplican únicamente a `[Caled Light]` y `[Caled Dark]`, conservando personalizaciones ajenas a las claves del acento. Ninguno requiere animaciones ni un proceso residente adicional.
 
 La identidad se aplica al editor, sus pestañas, menús, terminal, notificaciones y panel de Caled. La estructura base sigue siendo Code OSS: este trabajo no sustituye el núcleo ni todos sus menús. El ejecutable upstream conserva sus recursos y firma; el acceso directo usa el icono de Caled, pero algunos elementos nativos pueden mostrar todavía el de VSCodium.
 

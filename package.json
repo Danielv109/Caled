@@ -2,7 +2,7 @@
   "name": "caled",
   "displayName": "Caled AI",
   "description": "Tu editor con IA local, contexto privado y cambios revisables.",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "caled",
   "license": "MIT",
   "private": true,
@@ -67,7 +67,10 @@
       }
     ],
     "commands": [
-      { "command": "caled.home", "title": "%command.home%" },
+      {
+        "command": "caled.home",
+        "title": "%command.home%"
+      },
       {
         "command": "caled.preferences",
         "title": "%command.preferences%"
@@ -84,7 +87,10 @@
         "command": "caled.openFolder",
         "title": "%command.openFolder%"
       },
-      { "command": "caled.createProject", "title": "%command.createProject%" },
+      {
+        "command": "caled.createProject",
+        "title": "%command.createProject%"
+      },
       {
         "command": "caled.agent",
         "title": "%command.agent%"
@@ -181,13 +187,39 @@
         "caled.studio.personalization": {
           "type": "object",
           "scope": "application",
-          "default": { "displayName": "", "experience": "guided", "accent": "sage" },
+          "ignoreSync": true,
+          "default": {
+            "displayName": "",
+            "experience": "guided",
+            "accent": "sage"
+          },
           "additionalProperties": false,
-          "required": ["displayName", "experience", "accent"],
+          "required": [
+            "displayName",
+            "experience",
+            "accent"
+          ],
           "properties": {
-            "displayName": { "type": "string", "maxLength": 40 },
-            "experience": { "type": "string", "enum": ["guided", "balanced", "concise"] },
-            "accent": { "type": "string", "enum": ["sage", "ocean", "clay"] }
+            "displayName": {
+              "type": "string",
+              "maxLength": 40
+            },
+            "experience": {
+              "type": "string",
+              "enum": [
+                "guided",
+                "balanced",
+                "concise"
+              ]
+            },
+            "accent": {
+              "type": "string",
+              "enum": [
+                "sage",
+                "ocean",
+                "clay"
+              ]
+            }
           },
           "description": "%setting.studio%"
         },

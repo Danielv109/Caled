@@ -21,8 +21,12 @@ export function renderWebview(nonce: string, language: InterfaceLanguage = 'es')
     :root { color-scheme: light dark; --accent: var(--vscode-button-background, #286c52); --accent-text: var(--vscode-button-foreground, #fff); --fg: var(--vscode-foreground, #e5e8e2); --muted: var(--vscode-descriptionForeground, #a3b0a6); --surface: var(--vscode-sideBar-background, #171b1a); --input: var(--vscode-input-background, #202623); --line: var(--vscode-widget-border, #3c4941); --focus: var(--vscode-focusBorder, #7cbea0); }
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
+    body.vscode-light, body.vscode-high-contrast-light { color-scheme: light; }
+    body.vscode-dark, body.vscode-high-contrast { color-scheme: dark; }
     body { color: var(--fg); background: var(--surface); font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif; font-size: var(--vscode-font-size, 13px); }
     button, textarea { font: inherit; }
+    .topbar > .brand { border:0; background:transparent; padding:0; cursor:pointer; }
+    .proposal pre { white-space:pre-wrap; overflow-wrap:anywhere; max-height:180px; overflow:auto; }
     button { color: inherit; cursor: pointer; }
     button:disabled { cursor: default; opacity: .45; }
     button:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
@@ -165,10 +169,10 @@ export function renderWebview(nonce: string, language: InterfaceLanguage = 'es')
 <body>
   <main class="app" aria-label="${t('Asistente de programación Caled')}">
     <header class="topbar">
-      <div class="brand">
+      <button id="studio" class="brand" title="${t('Mi estudio')}" aria-label="${t('Mi estudio')}">
         <svg class="brand-mark" viewBox="0 0 256 256" aria-hidden="true"><path d="M173 81a65 65 0 1 0 0 94" stroke-width="17"/><path d="M125 128h74m-24-24 24 24-24 24" stroke-width="17"/></svg>
         <span>caled</span>
-      </div>
+      </button>
       <div class="top-actions">
         <button id="checkpoints" class="icon-button" aria-label="${t('Historial de cambios')}" title="${t('Historial de cambios')}" aria-controls="checkpoint-panel" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 3 8M3 4v7h7M12 7v5l3 2"/></svg></button>
         <button id="clear" class="icon-button" aria-label="${t('Nueva conversación')}" title="${t('Nueva conversación')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
@@ -240,7 +244,7 @@ export function renderWebview(nonce: string, language: InterfaceLanguage = 'es')
     const locale = ${JSON.stringify(locale)};
     function t(text) { return Object.prototype.hasOwnProperty.call(dictionary, text) ? dictionary[text] : text; }
     const byId = function (id) { return document.getElementById(id); };
-    const ui = { preferences: byId('preferences'), account: byId('account'), selectAgent: byId('select-agent'), openFolder: byId('open-folder'), agentProfile: byId('agent-profile'), scroll: byId('scroll'), welcome: byId('welcome'), conversation: byId('conversation'), prompt: byId('prompt'), send: byId('send'), model: byId('model'), clear: byId('clear'), configure: byId('configure'), reindex: byId('reindex'), chat: byId('mode-chat'), edit: byId('mode-edit'), agent: byId('mode-agent'), checkpoints: byId('checkpoints'), checkpointPanel: byId('checkpoint-panel'), checkpointList: byId('checkpoint-list'), announcer: byId('announcer') };
+    const ui = { studio: byId('studio'), preferences: byId('preferences'), account: byId('account'), selectAgent: byId('select-agent'), openFolder: byId('open-folder'), agentProfile: byId('agent-profile'), scroll: byId('scroll'), welcome: byId('welcome'), conversation: byId('conversation'), prompt: byId('prompt'), send: byId('send'), model: byId('model'), clear: byId('clear'), configure: byId('configure'), reindex: byId('reindex'), chat: byId('mode-chat'), edit: byId('mode-edit'), agent: byId('mode-agent'), checkpoints: byId('checkpoints'), checkpointPanel: byId('checkpoint-panel'), checkpointList: byId('checkpoint-list'), announcer: byId('announcer') };
     let mode = 'chat';
     let busy = false;
     let cancelling = false;
@@ -317,7 +321,7 @@ export function renderWebview(nonce: string, language: InterfaceLanguage = 'es')
         messages.unshift({ role: item.role, text: item.text });
         remaining -= item.text.length;
       }
-      vscode.setState({ version: 1, messages: messages });
+      vscode.setState({ version: 1, messages: messages, draft: ui.prompt.value.slice(0, 16000), mode: mode });
     }
     function refreshWelcome() { ui.welcome.hidden = ui.conversation.childElementCount > 0; }
     function updateControls() {
@@ -618,7 +622,8 @@ export function renderWebview(nonce: string, language: InterfaceLanguage = 'es')
     }
 
     ui.scroll.addEventListener('scroll', function () { stickToBottom = ui.scroll.scrollHeight - ui.scroll.scrollTop - ui.scroll.clientHeight < 70; });
-    ui.prompt.addEventListener('input', function () { resizeInput(); updateControls(); });
+    ui.prompt.addEventListener('input', function () { resizeInput(); updateControls(); persist(); });
+    ui.studio.addEventListener('click', function () { post({ type: 'home' }); });
     ui.prompt.addEventListener('keydown', function (event) {
       if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); send(); }
     });
@@ -671,6 +676,25 @@ export function renderWebview(nonce: string, language: InterfaceLanguage = 'es')
       const message = event.data;
       if (!message || typeof message !== 'object' || typeof message.type !== 'string') return;
       switch (message.type) {
+        case 'draft': {
+          if (busy || restoring !== null || typeof message.text !== 'string' || !message.text.trim() || message.text.length > 16000 || !['chat', 'edit', 'agent'].includes(message.mode)) break;
+          const useDraft = function () {
+            if (busy || restoring !== null) return;
+            setMode(message.mode); ui.prompt.value = message.text;
+            resizeInput(); updateControls(); persist(); ui.prompt.focus();
+            announce(t('Instrucción preparada. Revísala antes de enviarla.'));
+          };
+          if (!ui.prompt.value.trim()) useDraft();
+          else {
+            const card = element('section', 'proposal');
+            card.appendChild(element('p', 'proposal-summary', t('Tu borrador se conserva. Hay una nueva instrucción del cuaderno lista para revisar.')));
+            card.appendChild(element('pre', 'message-content', message.text));
+            const button = element('button', 'small-button', t('Usar esta instrucción'));
+            button.addEventListener('click', function () { if (!busy && restoring === null) { useDraft(); button.disabled = true; } });
+            card.appendChild(button); appendRow(card, message.text.length);
+          }
+          break;
+        }
         case 'selectMode':
           if (!busy && ['chat', 'edit', 'agent'].includes(message.mode)) setMode(message.mode);
           break;
@@ -766,6 +790,7 @@ export function renderWebview(nonce: string, language: InterfaceLanguage = 'es')
           break;
         }
         case 'cleared':
+          if (message.resetDraft === true) { ui.prompt.value = ''; setMode('chat'); resizeInput(); }
           expireApprovals();
           proposals.forEach(function (proposal) { proposal.finished = true; proposal.buttons.forEach(function (button) { button.disabled = true; }); });
           active = null;
@@ -785,6 +810,11 @@ export function renderWebview(nonce: string, language: InterfaceLanguage = 'es')
       }
     });
     const saved = vscode.getState();
+    if (saved && saved.version === 1) {
+      if (typeof saved.draft === 'string' && saved.draft.length <= 16000) ui.prompt.value = saved.draft;
+      if (['chat', 'edit', 'agent'].includes(saved.mode)) setMode(saved.mode);
+      resizeInput();
+    }
     if (saved && saved.version === 1 && Array.isArray(saved.messages)) {
       let restoredCharacters = 0;
       for (const message of saved.messages.slice(-maxMessages)) {

@@ -88,6 +88,38 @@ function withClass(node: Node, className: string): Node[] {
 }
 
 describe('webview trust boundaries and interaction', () => {
+  it('prepares notebook instructions without sending and restores a draft after reload', () => {
+    const view = panel(); view.state();
+    view.host({ type: 'draft', text: 'Planifica mi proyecto', mode: 'agent' });
+    expect(view.get('prompt').value).toBe('Planifica mi proyecto');
+    expect(view.outbound.some(item => item.type === 'send')).toBe(false);
+    expect(view.get('mode-agent').attributes.get('aria-pressed')).toBe('true');
+    const restored = panel(view.persisted.at(-1)); restored.state();
+    expect(restored.get('prompt').value).toBe('Planifica mi proyecto');
+    restored.get('send').click();
+    expect(restored.outbound.at(-1)).toEqual({ type: 'send', text: 'Planifica mi proyecto', mode: 'agent' });
+    view.host({ type: 'cleared', resetDraft: true });
+    expect(view.get('prompt').value).toBe('');
+    view.get('studio').click();
+    expect(view.outbound.at(-1)).toEqual({ type: 'home' });
+  });
+
+  it('preserves an existing prompt until the user chooses a notebook instruction and rejects unsafe states', () => {
+    const view = panel(undefined, 'en'); view.state();
+    view.get('prompt').value = 'My unsent text';
+    view.host({ type: 'draft', text: '<script>goal</script>', mode: 'agent' });
+    expect(view.get('prompt').value).toBe('My unsent text');
+    expect(view.get('conversation').textContent).toContain('<script>goal</script>');
+    expect(view.created.some(node => node.tag === 'script')).toBe(false);
+    const use = buttons(view.get('conversation')).find(button => button.textContent === 'Use this instruction')!;
+    view.host({ type: 'start', mode: 'chat' }); use.click();
+    expect(view.get('prompt').value).toBe('My unsent text');
+    view.host({ type: 'done' }); use.click();
+    expect(view.get('prompt').value).toBe('<script>goal</script>');
+    view.host({ type: 'draft', text: 'x'.repeat(16001), mode: 'agent' });
+    expect(view.get('prompt').value).toBe('<script>goal</script>');
+    expect(view.outbound.some(item => item.type === 'send')).toBe(false);
+  });
   it.each(['es', 'en'] as const)('offers accessible first steps and preferences in %s', language => {
     const view = panel(undefined, language);
     const markup = view.html.slice(0, view.html.indexOf('<script'));
@@ -238,7 +270,7 @@ describe('webview trust boundaries and interaction', () => {
     expect(view.created.find(node => node.tag === 'code')?.textContent).toBe(attack);
     expect(view.get('conversation').textContent).toContain(attack);
     const saved = view.persisted.at(-1) as { version: number; messages: { role: string; text: string }[] };
-    expect(Object.keys(saved).sort()).toEqual(['messages', 'version']);
+    expect(Object.keys(saved).sort()).toEqual(['draft', 'messages', 'mode', 'version']);
     expect(saved.messages[0]?.text).toContain(attack);
     expect(saved.messages[0]?.role).toBe('assistant');
   });
@@ -261,7 +293,7 @@ describe('webview trust boundaries and interaction', () => {
     view.host({ type: 'cleared' });
     expect(view.get('conversation').childElementCount).toBe(0);
     expect(view.get('welcome').hidden).toBe(false);
-    expect(view.persisted.at(-1)).toEqual({ version: 1, messages: [] });
+    expect(view.persisted.at(-1)).toEqual({ version: 1, messages: [], draft: '', mode: 'chat' });
   });
 
   it('restores bounded conversation data and ignores invalid roles', () => {
