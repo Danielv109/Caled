@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.cache/
+.runtime/
+.upstream/
+artifacts/
+coverage/
+*.vsix
+*.log
+.env*
+!.env.example

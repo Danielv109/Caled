@@ -1,0 +1,228 @@
+{
+  "name": "caled",
+  "displayName": "Caled AI",
+  "description": "Tu editor con IA local, contexto privado y cambios revisables.",
+  "version": "0.2.0",
+  "publisher": "caled",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "vscode": "^1.96.0",
+    "node": ">=22.14.0"
+  },
+  "categories": [
+    "Machine Learning",
+    "Programming Languages"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "La IA y el índice se habilitan solo en carpetas de confianza."
+    },
+    "virtualWorkspaces": false
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm test && npm run build",
+    "desktop:prepare": "npm run build && node scripts/desktop.mjs prepare",
+    "desktop:start": "node scripts/desktop.mjs start",
+    "desktop:verify": "node scripts/desktop.mjs verify",
+    "source:prepare": "npm run build && node scripts/upstream.mjs prepare",
+    "package:extension": "npm run build && node scripts/package.mjs",
+    "doctor": "node scripts/doctor.mjs",
+    "test:desktop": "node scripts/test-desktop.mjs",
+    "ai:prepare": "node scripts/local-ai.mjs prepare",
+    "ai:start": "node scripts/local-ai.mjs start",
+    "ai:unload": "node scripts/local-ai.mjs unload",
+    "test:live": "node scripts/test-live.mjs"
+  },
+  "contributes": {
+    "commands": [
+      { "command": "caled.agent", "title": "Caled: Iniciar tarea con agente" },
+      { "command": "caled.checkpoints", "title": "Caled: Ver puntos de recuperación" },
+      {
+        "command": "caled.open",
+        "title": "Caled: Abrir asistente"
+      },
+      {
+        "command": "caled.configure",
+        "title": "Caled: Configurar proveedor y modelo"
+      },
+      {
+        "command": "caled.selectModel",
+        "title": "Caled: Elegir modelo disponible"
+      },
+      {
+        "command": "caled.setApiKey",
+        "title": "Caled: Guardar clave API"
+      },
+      {
+        "command": "caled.deleteApiKey",
+        "title": "Caled: Eliminar clave API"
+      },
+      {
+        "command": "caled.reindex",
+        "title": "Caled: Actualizar índice del proyecto"
+      },
+      {
+        "command": "caled.explain",
+        "title": "Caled: Explicar selección"
+      },
+      {
+        "command": "caled.edit",
+        "title": "Caled: Editar selección con IA"
+      },
+      {
+        "command": "caled.cancel",
+        "title": "Caled: Cancelar respuesta"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "caled.open",
+        "key": "ctrl+alt+l",
+        "mac": "cmd+alt+l"
+      },
+      {
+        "command": "caled.edit",
+        "key": "ctrl+alt+k",
+        "mac": "cmd+alt+k",
+        "when": "editorTextFocus && !editorReadonly"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "caled",
+          "title": "Caled",
+          "icon": "media/caled.svg"
+        }
+      ]
+    },
+    "views": {
+      "caled": [
+        {
+          "type": "webview",
+          "id": "caled.chat",
+          "name": "Asistente"
+        }
+      ]
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "caled.explain",
+          "group": "caled@1",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "caled.edit",
+          "group": "caled@2",
+          "when": "editorTextFocus"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Caled",
+      "properties": {
+        "caled.agent.maxSteps": { "type": "number", "default": 10, "minimum": 1, "maximum": 30, "description": "Máximo de acciones por tarea. Las ediciones y comandos requieren aprobación." },
+        "caled.agent.commandTimeoutMs": { "type": "number", "default": 60000, "minimum": 1000, "maximum": 120000, "description": "Tiempo máximo de un comando aprobado. Se detiene su árbol de procesos al cancelar o agotar el tiempo." },
+        "caled.local.contextWindow": { "type": "number", "default": 8192, "minimum": 2048, "maximum": 32768, "scope": "application", "description": "Ventana de contexto de Ollama. Aumentarla requiere más RAM." },
+        "caled.provider": {
+          "type": "string",
+          "enum": [
+            "ollama",
+            "deepseek",
+            "kimi",
+            "openai-compatible"
+          ],
+          "default": "ollama",
+          "scope": "application",
+          "description": "Ollama ejecuta modelos locales sin cuota. Las APIs externas pueden cobrar por uso."
+        },
+        "caled.baseUrl": {
+          "type": "string",
+          "default": "",
+          "scope": "application",
+          "description": "Vacío usa la dirección del proveedor. HTTP solo se permite en loopback; servidores remotos requieren HTTPS."
+        },
+        "caled.model": {
+          "type": "string",
+          "default": "",
+          "scope": "application",
+          "description": "Modelo para chat y edición. Vacío usa el modelo inicial del proveedor."
+        },
+        "caled.completionModel": {
+          "type": "string",
+          "default": "",
+          "scope": "application",
+          "description": "Modelo para autocompletar. Vacío comparte el de chat."
+        },
+        "caled.inline.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Mostrar sugerencias de código. Tab acepta; Escape descarta."
+        },
+        "caled.inline.debounceMs": {
+          "type": "number",
+          "default": 700,
+          "minimum": 250,
+          "maximum": 3000,
+          "description": "Espera al dejar de escribir antes de solicitar una sugerencia."
+        },
+        "caled.context.maxFiles": {
+          "type": "number",
+          "default": 2500,
+          "minimum": 10,
+          "maximum": 10000,
+          "description": "Límite de archivos en el índice local."
+        },
+        "caled.context.maxChars": {
+          "type": "number",
+          "default": 18000,
+          "minimum": 2000,
+          "maximum": 100000,
+          "description": "Presupuesto de caracteres para el contexto del proyecto."
+        },
+        "caled.context.semantic": {
+          "type": "boolean",
+          "default": false,
+          "description": "Complementar búsqueda local con embeddings de Ollama. Requiere un modelo de embeddings instalado."
+        },
+        "caled.context.embeddingModel": {
+          "type": "string",
+          "default": "nomic-embed-text",
+          "scope": "application",
+          "description": "Modelo local de embeddings en Ollama."
+        },
+        "caled.requestTimeoutMs": {
+          "type": "number",
+          "default": 120000,
+          "minimum": 1000,
+          "maximum": 600000,
+          "description": "Tiempo máximo de cada solicitud de IA."
+        }
+      }
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "@types/vscode": "^1.96.0",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
+  },
+  "dependencies": {
+    "ignore": "^7.0.10"
+  }
+}

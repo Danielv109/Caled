@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "distribution": "VSCodium",
+  "release": "1.135.06055",
+  "releaseUrl": "https://github.com/VSCodium/vscodium/releases/tag/1.135.06055",
+  "publishedAt": "2026-09-09T08:19:21Z",
+  "platform": "win32-x64",
+  "executable": "VSCodium.exe",
+  "asset": "VSCodium-win32-x64-1.135.06055.zip",
+  "url": "https://github.com/VSCodium/vscodium/releases/download/1.135.06055/VSCodium-win32-x64-1.135.06055.zip",
+  "size": 250898961,
+  "sha256": "0bec978f201238624bc9ad43966f5e201ed8afacc37d77035a822252d9c9c200",
+  "integritySource": "https://api.github.com/repos/VSCodium/vscodium/releases/tags/1.135.06055",
+  "integrityMethod": "Official GitHub release asset digest (sha256)",
+  "source": {
+    "repository": "https://github.com/microsoft/vscode.git",
+    "tag": "1.135.0",
+    "commit": "08d4889f9ec4a1685d257b9b95de036c8e1ce1e5",
+    "provenance": "https://raw.githubusercontent.com/VSCodium/vscodium/1.135.06055/upstream/stable.json"
+  }
+}
