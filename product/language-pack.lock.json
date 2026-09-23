@@ -1,0 +1,10 @@
+{
+  "id": "MS-CEINTL.vscode-language-pack-es",
+  "version": "1.131.0",
+  "language": "es",
+  "url": "https://open-vsx.org/api/MS-CEINTL/vscode-language-pack-es/1.131.0/file/MS-CEINTL.vscode-language-pack-es-1.131.0.vsix",
+  "sha256": "f08326d86e11ae4a6486b3217aa27eaaecf8f4bdd2597ac1fb450f9d346bebda",
+  "checksumSource": "https://open-vsx.org/api/MS-CEINTL/vscode-language-pack-es/1.131.0/file/MS-CEINTL.vscode-language-pack-es-1.131.0.sha256",
+  "license": "MIT",
+  "note": "Spanish core language pack distributed by Open VSX. Newer core strings may fall back to English."
+}

@@ -6,6 +6,7 @@ dist/
 artifacts/
 coverage/
 *.vsix
+*.lnk
 *.log
 .env*
 !.env.example

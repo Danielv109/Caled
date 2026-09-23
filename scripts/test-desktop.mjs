@@ -12,6 +12,8 @@ await writeFile(path.join(fixture, '.env'), 'TOKEN=CALED_SECRET_DO_NOT_SEND');
 const resultFile = path.join(directory, 'result.json');
 const env = { ...process.env, CALED_TEST_RESULT: resultFile };
 if (process.argv.includes('--capture')) env.CALED_TEST_CAPTURE = '1';
+if (process.argv.includes('--light')) env.CALED_TEST_APPEARANCE = 'light';
+if (process.argv.includes('--english')) env.CALED_TEST_LANGUAGE = 'en';
 const live = process.argv.includes('--live');
 if (live) env.CALED_LIVE_MODEL = JSON.parse(await readFile(path.join(root, '.runtime/ollama/selected-model.json'), 'utf8')).model;
 delete env.ELECTRON_RUN_AS_NODE; delete env.VSCODE_PORTABLE; delete env.VSCODE_DEV;

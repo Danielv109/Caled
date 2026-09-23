@@ -43,13 +43,13 @@ class Node {
   focus(): void { this.focused = true; }
 }
 
-function panel(saved?: unknown) {
+function panel(saved?: unknown, language: 'es' | 'en' = 'es') {
   const ids = new Map<string, Node>();
   const created: Node[] = [];
   const outbound: Record<string, unknown>[] = [];
   const persisted: unknown[] = [];
   const window = new Node('window');
-  const html = renderWebview('abcdefghijklmnop1234567890');
+  const html = renderWebview('abcdefghijklmnop1234567890', language);
   const quick = Array.from(html.matchAll(/<button class="quick" data-prompt="([^"]*)" data-mode="([^"]*)"/g), match => {
     const button = new Node('button');
     button.dataset.prompt = match[1]!;
@@ -88,6 +88,109 @@ function withClass(node: Node, className: string): Node[] {
 }
 
 describe('webview trust boundaries and interaction', () => {
+  it.each(['es', 'en'] as const)('offers accessible first steps and preferences in %s', language => {
+    const view = panel(undefined, language);
+    const markup = view.html.slice(0, view.html.indexOf('<script'));
+    expect(markup).toContain('lang="' + language + '"');
+    expect(markup).toContain('aria-label="' + (language === 'es' ? 'Preferencias' : 'Preferences') + '"');
+    expect(markup).toContain(language === 'es' ? 'Describe' : 'Describe');
+    expect(markup).toContain(language === 'es' ? 'Comprueba' : 'Check');
+    expect(markup).toContain(language === 'es' ? 'sin cuenta' : 'no account needed');
+    expect(markup).toContain('aria-describedby="agent-description"');
+    expect(markup).toContain('prefers-reduced-motion');
+    expect(markup).toContain('vscode-high-contrast-light');
+    expect(markup).not.toMatch(/https?:\/\/|linear-gradient|sparkle/);
+    view.state({ trusted: false, hasWorkspace: false });
+    expect(view.get('project-entry').hidden).toBe(false);
+    expect(view.get('open-folder').disabled).toBe(false);
+    view.get('open-folder').click();
+    expect(view.outbound.at(-1)).toEqual({ type: 'openFolder' });
+    view.get('preferences').click();
+    expect(view.outbound.at(-1)).toEqual({ type: 'preferences' });
+    view.get('account').click();
+    expect(view.outbound.at(-1)).toEqual({ type: 'account' });
+    expect(view.get('prompt').disabled).toBe(true);
+    view.state({ hasWorkspace: true });
+    expect(view.get('project-entry').hidden).toBe(true);
+    view.host({ type: 'start', mode: 'agent' });
+    for (const id of ['preferences', 'account', 'select-agent', 'open-folder']) expect(view.get(id).disabled).toBe(true);
+  });
+
+  it('shows a bounded agent purpose as text and lets the host choose its profile', () => {
+    const view = panel(undefined, 'en');
+    const attack = '<img src=x onerror=alert(1)>';
+    view.state({ agentLabel: 'Builder', agentDescription: attack + 'a'.repeat(1500) });
+    view.get('mode-agent').click();
+    expect(view.get('agent-profile').hidden).toBe(false);
+    expect(view.get('agent-label').textContent).toBe('Builder');
+    expect(view.get('agent-description').textContent).toHaveLength(1000);
+    expect(view.get('agent-description').textContent).toContain(attack);
+    expect(view.created.some(node => node.tag === 'img')).toBe(false);
+    view.get('select-agent').click();
+    expect(view.outbound.at(-1)).toEqual({ type: 'selectAgent' });
+    view.get('mode-chat').click();
+    expect(view.get('agent-profile').hidden).toBe(true);
+  });
+
+  it('localizes English statuses, prompts, approvals, checkpoints, and accessible announcements', () => {
+    const view = panel(undefined, 'en');
+    const markup = view.html.slice(0, view.html.indexOf('<script'));
+    expect(markup).not.toMatch(/Conversación|Elegir modelo|Nueva conversación|Cargando|Historial/);
+    view.state({ model: '', indexedFiles: 1 });
+    expect(view.get('context-label').textContent).toBe('1 file in context');
+    expect(view.get('model-name').textContent).toBe('Choose model');
+    view.quick.find(button => button.dataset.mode === 'agent')!.click();
+    expect(view.get('prompt').value).toBe('Investigate and solve this task: ');
+    expect(view.get('prompt').placeholder).toBe('Describe the task you want to solve…');
+    view.get('send').click();
+    expect(view.get('send').attributes.get('aria-label')).toBe('Cancel response');
+    expect(view.get('announcer').textContent).toBe('Request sent. Caled is working.');
+    view.host({ type: 'start', mode: 'agent' });
+    view.host({ type: 'agentStep', step: 1, action: 'read', status: 'done', detail: 'texto del archivo' });
+    expect(view.get('conversation').textContent).toContain('1. Read fileCompleted');
+    expect(view.get('conversation').textContent).toContain('texto del archivo');
+    view.host({ type: 'proposal', id: 'en-edit', summary: 'Resumen conservado', files: ['hola.ts'], awaitingApproval: true });
+    expect(view.get('conversation').textContent).toContain('Changes ready for review');
+    expect(view.get('conversation').textContent).toContain('Resumen conservado');
+    const apply = view.created.find(node => node.tag === 'button' && node.textContent === 'Apply changes')!;
+    apply.click();
+    expect(apply.textContent).toBe('Applying…');
+    view.host({ type: 'applied', id: 'en-edit' });
+    view.host({ type: 'approval', id: 'en-command', command: 'npm test', cwd: 'D:\\project' });
+    expect(view.get('conversation').textContent).toContain('The agent wants to run a command');
+    const allow = view.created.find(node => node.tag === 'button' && node.textContent === 'Approve once')!;
+    allow.click();
+    expect(view.outbound.at(-1)).toEqual({ type: 'approve', id: 'en-command', allow: true });
+    view.host({ type: 'agentResult', text: 'La respuesta del modelo permanece en su idioma.' });
+    view.host({ type: 'done' });
+    expect(view.get('conversation').textContent).toContain('La respuesta del modelo permanece en su idioma.');
+    expect(view.get('announcer').textContent).toBe('Response complete.');
+    view.host({ type: 'checkpoints', items: [{ id: 'saved', summary: 'Resumen', createdAt: 'invalid', files: ['hola.ts'] }] });
+    expect(view.get('checkpoint-list').textContent).toContain('Date unavailable');
+    expect(view.get('checkpoint-list').textContent).toContain('1 file');
+    const restore = buttons(view.get('checkpoint-list'))[0]!;
+    expect(restore.attributes.get('aria-label')).toBe('Restore files: Resumen');
+    restore.click();
+    view.host({ type: 'restored', id: 'saved' });
+    expect(restore.textContent).toBe('Files restored');
+    expect(view.get('conversation').textContent).toContain('Files restored from change history.');
+  });
+
+  it('preserves user and model messages across a language change without restoring authority', () => {
+    const spanish = panel();
+    spanish.state();
+    spanish.host({ type: 'user', text: 'Mi idea' });
+    spanish.host({ type: 'start', mode: 'chat' });
+    spanish.host({ type: 'delta', text: 'Explicación en español' });
+    spanish.host({ type: 'done' });
+    const englishView = panel(spanish.persisted.at(-1), 'en');
+    englishView.state();
+    expect(englishView.get('conversation').textContent).toContain('YouMi idea');
+    expect(englishView.get('conversation').textContent).toContain('Explicación en español');
+    expect(buttons(englishView.get('conversation'))).toHaveLength(0);
+    expect(englishView.get('send').attributes.get('aria-label')).toBe('Send message');
+  });
+
   it('rejects CSP nonce injection and grants no remote or inline-script access', () => {
     expect(() => renderWebview('x\" onload=\"alert(1)')).toThrow();
     expect(() => renderWebview("'; script-src *; ")).toThrow();
@@ -293,6 +396,11 @@ describe('webview trust boundaries and interaction', () => {
     next[1]!.click();
     next[1]!.click();
     expect(view.outbound.filter(item => item.type === 'apply')).toHaveLength(1);
+    view.host({ type: 'error', message: 'El archivo cambió', recoverable: true });
+    expect(view.get('mode-chat').disabled).toBe(true);
+    expect(next[1]!.disabled).toBe(false);
+    next[1]!.click();
+    expect(view.outbound.filter(item => item.type === 'apply')).toHaveLength(2);
     view.host({ type: 'applied', id: 'next' });
     expect(view.get('mode-chat').disabled).toBe(true);
     expect(next.every(button => button.disabled)).toBe(true);

@@ -6,6 +6,7 @@ import {
   cp,
   mkdir,
   readFile,
+  readdir,
   realpath,
   rename,
   stat,
@@ -253,7 +254,7 @@ export async function bundleExtension(destination) {
     await contained(path.join(destination, "package.json")),
     packaged,
   );
-  for (const folder of ["dist", "media"]) {
+  for (const folder of ["dist", "media", "themes", "docs"]) {
     await contained(path.join(destination, folder));
     await cp(path.join(root, folder), path.join(destination, folder), {
       recursive: true,
@@ -265,6 +266,10 @@ export async function bundleExtension(destination) {
         path.join(root, file),
         await contained(path.join(destination, file)),
       );
+  }
+  for (const file of await readdir(root)) {
+    if (/^package\.nls(?:\.[a-zA-Z-]+)?\.json$/.test(file))
+      await copyFile(path.join(root, file), await contained(path.join(destination, file)));
   }
 }
 
@@ -357,15 +362,34 @@ export async function prepare() {
       path.join(root, "product", "settings.defaults.json"),
       settingsPath,
     );
+  else {
+    // Add preferences introduced by a new version, preserving every explicit
+    // user choice and all comments in the portable settings file.
+    const original = await readFile(settingsPath, "utf8");
+    const defaults = await json(path.join(root, "product", "settings.defaults.json"));
+    let updated = original;
+    for (const [key, value] of Object.entries(defaults)) updated = addSetting(updated, key, value);
+    if (updated !== original) await writeFile(settingsPath, updated);
+  }
   // The signed upstream executable retains its original filename and resources.
   await writeFile(
     await contained(path.join(runtime, "Caled.cmd")),
     `@echo off\r\nsetlocal\r\nset ELECTRON_RUN_AS_NODE=\r\nset VSCODE_DEV=\r\nset "VSCODE_PORTABLE=%~dp0data"\r\nstart "Caled" "%~dp0${lock.executable}" %*\r\nendlocal\r\n`,
   );
   await verify();
+  await run(process.execPath, [path.join(root, "scripts", "language-pack.mjs")]);
+  await shortcuts();
   console.log(
-    `Caled is prepared: ${runtime}\nStart with npm run desktop:start or Caled.cmd.`,
+    `Caled is prepared: ${runtime}\nOpen Caled from your Desktop or Start menu, or run npm run desktop.`,
   );
+}
+
+export async function shortcuts() {
+  if (process.platform !== "win32") throw new Error("Desktop shortcuts currently support Windows only.");
+  if (!(await exists(path.join(root, "media", "caled.ico")))) {
+    await run("powershell.exe", ["-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", path.join(root, "scripts", "create-icon.ps1")]);
+  }
+  await run("powershell.exe", ["-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", path.join(root, "scripts", "desktop-shortcuts.ps1")]);
 }
 
 export async function verify() {
@@ -409,7 +433,10 @@ export async function verify() {
     "dist/extension.js",
     "dist/index-worker.js",
     "media/caled.svg",
+    ...(manifest.contributes?.themes ?? []).map(theme => theme.path),
+    ...(await readdir(root)).filter(file => /^package\.nls(?:\.[a-zA-Z-]+)?\.json$/.test(file)),
   ]) {
+    await contained(path.resolve(app, "extensions", "caled", file), path.join(app, "extensions", "caled"));
     const local = path.join(root, file);
     if (
       (await exists(local)) &&
@@ -452,7 +479,10 @@ async function start() {
     (await exists(path.join(root, ".runtime/ollama/ollama.exe")))
   ) {
     try {
-      await (await import("./local-ai.mjs")).startLocalAI();
+      // Run the helper in a short-lived child process. local-ai.mjs imports
+      // shared validation helpers from this module, so importing it here while
+      // desktop.mjs has top-level work would create an ESM evaluation deadlock.
+      await run(process.execPath, [path.join(root, "scripts", "local-ai.mjs"), "start"]);
     } catch (error) {
       console.warn(
         `Local AI could not start: ${error.message}. The editor will still open.`,
@@ -461,6 +491,10 @@ async function start() {
   }
   const lock = await loadLock();
   const args = process.argv.slice(3);
+  // Caled language changes affect the panel immediately and core menus on the
+  // next app start. An explicit CLI locale still takes precedence.
+  const language = settings?.["caled.language"] ?? "es";
+  const localeArgs = !args.some(arg => arg === "--locale" || arg.startsWith("--locale=")) && ["en", "es"].includes(language) ? [`--locale=${language}`] : [];
   const environment = {
     ...process.env,
     VSCODE_PORTABLE: path.join(runtime, "data"),
@@ -469,21 +503,43 @@ async function start() {
   delete environment.VSCODE_DEV;
   const child = spawn(
     path.join(runtime, lock.executable),
-    args.length ? args : [root],
+    [...(args.length ? args : [root]), ...localeArgs],
     {
       cwd: root,
       env: environment,
       detached: true,
       stdio: "ignore",
-      windowsHide: true,
+      // This is the user-facing Electron process. Hiding its initial Windows
+      // window also hides every workbench window owned by the instance.
+      windowsHide: false,
     },
   );
   await new Promise((resolve, reject) => {
-    child.once("spawn", resolve);
-    child.once("error", reject);
+    let settled = false;
+    const finish = (error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      child.removeListener("spawn", onSpawn);
+      child.removeListener("error", onError);
+      child.removeListener("exit", onExit);
+      error ? reject(error) : resolve();
+    };
+    const onSpawn = () => finish();
+    const onError = (error) => finish(error);
+    // Electron may hand the request to an existing window and exit before
+    // Node observes `spawn`. A successful exit is also a valid launch.
+    const onExit = (code) => finish(code === 0 ? undefined : new Error(`Caled exited during launch (${code ?? "unknown"}).`));
+    const timer = setTimeout(() => {
+      if (Number.isSafeInteger(child.pid) && child.pid > 0) finish();
+      else finish(new Error("Caled did not report a successful launch."));
+    }, 1500);
+    child.once("spawn", onSpawn);
+    child.once("error", onError);
+    child.once("exit", onExit);
   });
   child.unref();
-  console.log(`Caled launched (process ${child.pid}).`);
+  console.log(`Caled launched${child.pid ? ` (process ${child.pid})` : ""}.`);
 }
 
 if (
@@ -491,11 +547,11 @@ if (
   path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
   const action = process.argv[2] ?? "verify";
-  const actions = { prepare, start, verify, download };
+  const actions = { prepare, start, verify, download, shortcuts };
   try {
     if (!actions[action])
       throw new Error(
-        "Usage: node scripts/desktop.mjs prepare|start|verify|download",
+        "Usage: node scripts/desktop.mjs prepare|start|verify|download|shortcuts",
       );
     await actions[action]();
   } catch (error) {

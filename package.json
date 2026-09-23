@@ -2,7 +2,7 @@
   "name": "caled",
   "displayName": "Caled AI",
   "description": "Tu editor con IA local, contexto privado y cambios revisables.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "caled",
   "license": "MIT",
   "private": true,
@@ -35,56 +35,99 @@
     "test": "vitest run",
     "check": "npm run typecheck && npm test && npm run build",
     "desktop:prepare": "npm run build && node scripts/desktop.mjs prepare",
+    "desktop": "npm run desktop:start",
     "desktop:start": "node scripts/desktop.mjs start",
     "desktop:verify": "node scripts/desktop.mjs verify",
+    "desktop:shortcuts": "node scripts/desktop.mjs shortcuts",
     "source:prepare": "npm run build && node scripts/upstream.mjs prepare",
     "package:extension": "npm run build && node scripts/package.mjs",
     "doctor": "node scripts/doctor.mjs",
     "test:desktop": "node scripts/test-desktop.mjs",
+    "test:desktop:live": "node scripts/test-desktop.mjs --live",
+    "benchmark:index": "node scripts/benchmark-index.mjs",
     "ai:prepare": "node scripts/local-ai.mjs prepare",
     "ai:start": "node scripts/local-ai.mjs start",
+    "ai:status": "node scripts/local-ai.mjs status",
+    "ai:stop": "node scripts/local-ai.mjs stop",
+    "ai:verify": "node scripts/local-ai.mjs verify",
     "ai:unload": "node scripts/local-ai.mjs unload",
     "test:live": "node scripts/test-live.mjs"
   },
   "contributes": {
+    "themes": [
+      {
+        "label": "Caled Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/caled-dark.json"
+      },
+      {
+        "label": "Caled Light",
+        "uiTheme": "vs",
+        "path": "./themes/caled-light.json"
+      }
+    ],
     "commands": [
-      { "command": "caled.agent", "title": "Caled: Iniciar tarea con agente" },
-      { "command": "caled.checkpoints", "title": "Caled: Ver puntos de recuperación" },
+      { "command": "caled.home", "title": "%command.home%" },
+      {
+        "command": "caled.preferences",
+        "title": "%command.preferences%"
+      },
+      {
+        "command": "caled.selectAgent",
+        "title": "%command.selectAgent%"
+      },
+      {
+        "command": "caled.account",
+        "title": "%command.account%"
+      },
+      {
+        "command": "caled.openFolder",
+        "title": "%command.openFolder%"
+      },
+      { "command": "caled.createProject", "title": "%command.createProject%" },
+      {
+        "command": "caled.agent",
+        "title": "%command.agent%"
+      },
+      {
+        "command": "caled.checkpoints",
+        "title": "%command.checkpoints%"
+      },
       {
         "command": "caled.open",
-        "title": "Caled: Abrir asistente"
+        "title": "%command.open%"
       },
       {
         "command": "caled.configure",
-        "title": "Caled: Configurar proveedor y modelo"
+        "title": "%command.configure%"
       },
       {
         "command": "caled.selectModel",
-        "title": "Caled: Elegir modelo disponible"
+        "title": "%command.selectModel%"
       },
       {
         "command": "caled.setApiKey",
-        "title": "Caled: Guardar clave API"
+        "title": "%command.setApiKey%"
       },
       {
         "command": "caled.deleteApiKey",
-        "title": "Caled: Eliminar clave API"
+        "title": "%command.deleteApiKey%"
       },
       {
         "command": "caled.reindex",
-        "title": "Caled: Actualizar índice del proyecto"
+        "title": "%command.reindex%"
       },
       {
         "command": "caled.explain",
-        "title": "Caled: Explicar selección"
+        "title": "%command.explain%"
       },
       {
         "command": "caled.edit",
-        "title": "Caled: Editar selección con IA"
+        "title": "%command.edit%"
       },
       {
         "command": "caled.cancel",
-        "title": "Caled: Cancelar respuesta"
+        "title": "%command.cancel%"
       }
     ],
     "keybindings": [
@@ -114,7 +157,7 @@
         {
           "type": "webview",
           "id": "caled.chat",
-          "name": "Asistente"
+          "name": "Caled"
         }
       ]
     },
@@ -135,9 +178,88 @@
     "configuration": {
       "title": "Caled",
       "properties": {
-        "caled.agent.maxSteps": { "type": "number", "default": 10, "minimum": 1, "maximum": 30, "description": "Máximo de acciones por tarea. Las ediciones y comandos requieren aprobación." },
-        "caled.agent.commandTimeoutMs": { "type": "number", "default": 60000, "minimum": 1000, "maximum": 120000, "description": "Tiempo máximo de un comando aprobado. Se detiene su árbol de procesos al cancelar o agotar el tiempo." },
-        "caled.local.contextWindow": { "type": "number", "default": 8192, "minimum": 2048, "maximum": 32768, "scope": "application", "description": "Ventana de contexto de Ollama. Aumentarla requiere más RAM." },
+        "caled.studio.personalization": {
+          "type": "object",
+          "scope": "application",
+          "default": { "displayName": "", "experience": "guided", "accent": "sage" },
+          "additionalProperties": false,
+          "required": ["displayName", "experience", "accent"],
+          "properties": {
+            "displayName": { "type": "string", "maxLength": 40 },
+            "experience": { "type": "string", "enum": ["guided", "balanced", "concise"] },
+            "accent": { "type": "string", "enum": ["sage", "ocean", "clay"] }
+          },
+          "description": "%setting.studio%"
+        },
+        "caled.language": {
+          "type": "string",
+          "enum": [
+            "es",
+            "en",
+            "system"
+          ],
+          "default": "es",
+          "scope": "application",
+          "description": "%setting.language%"
+        },
+        "caled.appearance": {
+          "type": "string",
+          "enum": [
+            "system",
+            "light",
+            "dark"
+          ],
+          "default": "system",
+          "scope": "application",
+          "description": "%setting.appearance%"
+        },
+        "caled.agent.profile": {
+          "type": "string",
+          "enum": [
+            "guide",
+            "builder",
+            "fixer",
+            "reviewer",
+            "tester"
+          ],
+          "default": "builder",
+          "scope": "application",
+          "description": "%setting.profile%"
+        },
+        "caled.account.url": {
+          "type": "string",
+          "default": "",
+          "scope": "application",
+          "description": "%setting.accountUrl%"
+        },
+        "caled.account.publicKey": {
+          "type": "string",
+          "default": "",
+          "scope": "application",
+          "description": "%setting.accountKey%"
+        },
+        "caled.agent.maxSteps": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 30,
+          "description": "Máximo de acciones por tarea. Las ediciones y comandos requieren aprobación."
+        },
+        "caled.agent.commandTimeoutMs": {
+          "type": "number",
+          "default": 60000,
+          "minimum": 1000,
+          "maximum": 120000,
+          "description": "Tiempo máximo de un comando aprobado. Se detiene su árbol de procesos al cancelar o agotar el tiempo."
+        },
+        "caled.local.contextWindow": {
+          "type": "number",
+          "default": 8192,
+          "minimum": 2048,
+          "maximum": 32768,
+          "scope": "application",
+          "description": "Ventana de contexto de Ollama. Aumentarla requiere más RAM."
+        },
         "caled.provider": {
           "type": "string",
           "enum": [

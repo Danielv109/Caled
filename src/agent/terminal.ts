@@ -15,7 +15,11 @@ export async function runApprovedCommand(command: string, cwd: string, signal: A
     let output = '', timedOut = false, cancelled = false, truncated = false, settled = false, stopping = false;
     const stop = () => {
       if (settled || stopping) return; stopping = true;
-      if (windows && child.pid) { const killer = spawn('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' }); killer.on('error', () => child.kill()); }
+      if (windows && child.pid) {
+        const killer = spawn('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' });
+        killer.on('error', () => child.kill());
+        killer.on('exit', code => { if (code !== 0) child.kill(); });
+      }
       else if (child.pid) { try { process.kill(-child.pid, 'SIGKILL'); } catch { child.kill('SIGKILL'); } }
     };
     const onAbort = () => { cancelled = true; stop(); };
